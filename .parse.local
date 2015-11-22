@@ -1,0 +1,10 @@
+{
+  "applications": {
+    "Kville Scheduler": {
+      "applicationId": "lnhmq8I9pfJtKHM5QkwoDghTSb3e0YJ74tWDZqe0"
+    },
+    "_default": {
+      "link": "Kville Scheduler"
+    }
+  }
+}
