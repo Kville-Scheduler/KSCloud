@@ -47,10 +47,12 @@ locateOrCreateUser = function(userId,token){
 	var promise = new Parse.Promise();
 
 	Parse.Cloud.useMasterKey();
+	//see if any entries match the userId
 	var query = new Parse.Query("TokenStorage");
 	query.equalTo("userId",userId);
 	query.count().then(function(count){
 		if (count > 0){
+			//find the user with the given id
 			userWithUserId(query,token).then(function(user){
 				promise.resolve(user);
 			}, function(error){
@@ -58,6 +60,7 @@ locateOrCreateUser = function(userId,token){
 			});
 		}
 		else{
+			//create a new user
 			newUser(userId,token).then(function(user){
 				promise.resolve(user);
 			}, function(error){
@@ -75,11 +78,13 @@ userWithUserId = function(userIdQuery,token){
 
 	var tokenStorageObject;
 
+	//get the matching TokenStorage object
 	userIdQuery.first().then(function(object){
 		tokenStorageObject = object;
 		tokenStorageObject.set("accessToken",token);
 		return tokenStorageObject.save();
 	}).then(function(){
+		//find the user with the TokenStorage object
 		var query = new Parse.Query(Parse.User);
 		query.equalTo("tokenStorage",tokenStorageObject);
 		return query.first();
@@ -107,7 +112,7 @@ newUser = function(userId,token){
 	restrictedAcl.setPublicReadAccess(false);
 	restrictedAcl.setPublicWriteAccess(false);
 	tokenStorage.setACL(restrictedAcl);
-	
+
 	tokenStorage.save().then(function(){
 		//generate random username and password, as users are located using TokenStorage
 		var username = new Buffer(24);
