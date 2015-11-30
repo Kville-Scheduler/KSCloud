@@ -1,4 +1,5 @@
 var _ = require('underscore');
+var Buffer = require('buffer').Buffer;
 
 
 // Use Parse.Cloud.define to define as many cloud functions as you want.
@@ -22,14 +23,34 @@ Parse.Cloud.define("getCurrentSeason", function(request, response) {
 });
 
 Parse.Cloud.define("authenticatedSignin", function(request, response) {
+	Parse.Cloud.useMasterKey();
+
 	Parse.Cloud.httpRequest({
 		url: 'https://www.googleapis.com/oauth2/v1/tokeninfo?access_token='+request.params.access_token
 	}).then(function(httpResponse){
 		if (httpResponse.data.user_id){
 			//got a valid user_id, find the TokenStorage object
 			locateOrCreateUser(httpResponse.data.user_id,request.params.access_token).then(function(user){
-				console.log(user);
-				response.success(user);
+				/*this section is a hack because parse
+				posted a cool tutorial
+				https://parse.com/tutorials/adding-third-party-authentication-to-your-web-app
+				then broke functionality
+				http://stackoverflow.com/questions/29489008/parse-why-does-user-getsessiontoken-return-undefined
+				*/
+				var password = new Buffer(24);
+				_.times(24, function(i) {
+				  password.set(i, _.random(0, 255));
+				});
+				user.set("password", password.toString('base64'));
+				user.save().then(function(){
+					return Parse.User.logIn(user.get("username"),password.toString('base64'));
+				}).then(function(user){
+					console.log("session token is "+user.getSessionToken());
+					response.success(user.getSessionToken());
+				}, function(error){
+					response.error(error);
+				});
+				/*end hack*/
 			}, function(error){
 				response.error(error);
 			});
@@ -46,7 +67,6 @@ Parse.Cloud.define("authenticatedSignin", function(request, response) {
 locateOrCreateUser = function(userId,token){
 	var promise = new Parse.Promise();
 
-	Parse.Cloud.useMasterKey();
 	//see if any entries match the userId
 	var query = new Parse.Query("TokenStorage");
 	query.equalTo("userId",userId);
@@ -101,7 +121,6 @@ newUser = function(userId,token){
 	var promise = new Parse.Promise();
 
 	var user = new Parse.User();
-	var Buffer = require('buffer').Buffer;
 
 	//create new TokenStorage object
 	var tokenStorage = new Parse.Object("TokenStorage");
