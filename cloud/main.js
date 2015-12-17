@@ -13,7 +13,6 @@ Parse.Cloud.define("getCurrentSeason", function(request, response) {
 	query.equalTo("current",true);
 	query.first({
 		success: function(result){
-			console.log(result);
 			response.success(result);
 		},
 		error: function() {
@@ -21,6 +20,48 @@ Parse.Cloud.define("getCurrentSeason", function(request, response) {
 		}
 	});
 });
+
+
+Parse.Cloud.define("createTent", function(request, response) {
+	var tent = new Parse.Object("Tent")
+	tent.set("gDocId", request.params.gDocId)
+	tent.save().then(function(){
+		request.user.set("activeTent",tent)
+		request.user.set("isCaptain",true)
+		request.user.save().then(function(){
+			response.success('Success')
+		});
+	});
+});
+
+
+Parse.Cloud.define("recordSlots", function(request, response) {
+	var jsonSlots = JSON.parse(request.params.jsonSlots)
+	var allSlots = []
+	for (var i = 0; i < jsonSlots.length; i++) {
+		var slotJson = jsonSlots[i]
+		var slot = new Parse.Object("Slot");
+		slot.set("startDate", new Date(slotJson.startDate))
+		if (slotJson.startDate != slotJson.endDate){
+			slot.set("endDate", new Date(slotJson.endDate))
+		}
+		slot.set("startRow", slotJson.startRow)
+		slot.set("endRow", slotJson.endRow)
+		slot.set("startColumn", slotJson.startColumn)
+		slot.set("endColumn", slotJson.endColumn)
+		allSlots.push(slot)
+	};
+	Parse.Object.saveAll(allSlots).then(function(){
+		response.success()
+	}, function(error){
+		response.error(error)
+	})
+});
+
+
+/**
+User authentication
+**/
 
 Parse.Cloud.define("authenticatedSignin", function(request, response) {
 	Parse.Cloud.useMasterKey();
@@ -45,7 +86,6 @@ Parse.Cloud.define("authenticatedSignin", function(request, response) {
 				user.save().then(function(){
 					return Parse.User.logIn(user.get("username"),password.toString('base64'));
 				}).then(function(user){
-					console.log("session token is "+user.getSessionToken());
 					response.success(user.getSessionToken());
 				}, function(error){
 					response.error(error);
