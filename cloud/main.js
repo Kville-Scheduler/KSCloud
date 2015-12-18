@@ -29,7 +29,7 @@ Parse.Cloud.define("createTent", function(request, response) {
 		request.user.set("activeTent",tent)
 		request.user.set("isCaptain",true)
 		request.user.save().then(function(){
-			response.success('Success')
+			response.success(tent.id)
 		});
 	});
 });
